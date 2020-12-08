@@ -1,4 +1,4 @@
-from tello import Tello, Coordinate, Direction
+from tello_lib import Tello, Coordinate, Direction
 import time
 
 t = Tello()

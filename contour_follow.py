@@ -3,6 +3,7 @@ import face_recognition
 import cv2
 import numpy as np
 import time
+import util
 
 # TELLO = False
 TELLO = True
@@ -10,32 +11,36 @@ TELLO = True
 if TELLO:
     d = tello.Tello()
     d.takeoff()
-    time.sleep(2)
+    print(d.send_command("battery?"))
+    # time.sleep(2)
 
     # d.up(200)
     # time.sleep(2)
 
     # Do NOT use streamon() because it automatically takes control of the video stream (look at the source code)
-    # d.streamon()
-    d.send_command('streamon')  
+    d.streamon()
+    # d.send_command('streamon')  
     time.sleep(2)
     # d.land()
 
 stop_thres = 0.30
 
-cap = None
-if TELLO:
-    cap = cv2.VideoCapture('udp://0.0.0.0:11111')
-    # cap.set(cv2.CAP_PROP_FPS, 10)
-else:
-    cap = cv2.VideoCapture(0)
+# cap = None
+# if TELLO:
+#     cap = cv2.VideoCapture('udp://0.0.0.0:11111')
+#     # cap.set(cv2.CAP_PROP_FPS, 10)
+# else:
+#     cap = cv2.VideoCapture(0)
 
-fw = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-fh = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+# fw = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+# fh = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
 # if not cap.isOpened():
 #   print("Failed to open VideoCapture, stopping.")
 #   exit(-1)
+
+cv2.namedWindow("square")
+
 
 process_this_frame = True
 green = 0
@@ -43,18 +48,20 @@ green = 0
 
 while True:
     # Grab a single frame of video
-    ret, frame = cap.read()
+    # ret, frame = cap.read()
+    frame = d.frame
 
-    if not ret:
-        print('empty frame')
-        continue
 
     # if TELLO:
     #   frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+    if frame is None:
+        continue
+
+    fw = d.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    fh = d.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
     # Only process every other frame of video to save time
-    if not TELLO:
-        frame = np.fliplr(frame)
+    # frame = np.fliplr(frame)
     hsv = cv2.cvtColor(frame ,cv2.COLOR_BGR2HSV)
 
     # green
@@ -112,33 +119,49 @@ while True:
 
         # d.curve(0, 0, 0, )
         # ターゲット中心がカメラ中心より右にあったら
+        forward = True
         if cx - fw / 2 > 50:
-            if cx > fw / 2:
-                print("Going Right...")
-                d.right(50)
-                time.sleep(2)
-            if cx < fw / 2:
-                print("Going Left...")
-                d.left(50)
-                time.sleep(2)
-        else:
+            forward = False
+            print("Going Right...")
+            d.right(30)
+            time.sleep(2)
+        elif cx - fw / 2 < -50:
+            forward = False
+            print("Going Left...")
+            d.left(30)
+            time.sleep(2)
+
+        if cy - fh / 2 > 50:
+            forward = False
+            print("Going Down...")
+            d.down(30)
+            time.sleep(2)
+        elif cy - fh / 2 < -50:
+            forward = False
+            print("Going Up...")
+            d.up(30)
+            time.sleep(2)
+
+        if forward:
             print("Going forward...")
             d.forward(50)
-            time.sleep(2)
 
     # r = cv2.addWeighted(dst, 0.5, mask, 0.5, 0.0, None, None) 
     # cv2.imshow('res',r)
-    cv2.imshow('dst', dst)
+    # cv2.imshow('dst', dst)
 
     # land on Q key
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(0) & 0xFF
+    if key == ord('q'):
         d.land()
         break
 
-    if cv2.waitKey(1) & 0xFF == ord('r'):
+    if key == ord('r'):
         cv2.imshow('dst', frame)
         break
 
+    util.key_to_move(d, key)
+
 # Release handle to the webcam
-cap.release()
+d.cap.release()
 cv2.destroyAllWindows()
