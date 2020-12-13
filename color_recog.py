@@ -1,37 +1,23 @@
-from easytello import tello
-import face_recognition
-import cv2
-import numpy as np
 import time
 
-TELLO = True
+import cv2
+import easytello
+import numpy as np
 
-if TELLO:
-    d = tello.Tello()
-    d.takeoff()
-    time.sleep(3)
+d = easytello.tello.Tello()
+d.takeoff()
+time.sleep(3)
 
-    # Do NOT use streamon() because it automatically takes control of the video stream (look at the source code)
-    # d.streamon()
-    d.send_command('streamon')  
-    time.sleep(5)
-    # d.land()
+# Do NOT use streamon() because it automatically takes control of the video stream (look at the source code)
+d.send_command('streamon')
+time.sleep(5)
 
 stop_thres = 0.06
 
-cap = None
-if TELLO:
-    cap = cv2.VideoCapture('udp://0.0.0.0:11111')
-    # cap.set(cv2.CAP_PROP_FPS, 1)
-else:
-    cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture('udp://0.0.0.0:11111')
 
-fw = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-fh = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-# if not cap.isOpened():
-#   print("Failed to open VideoCapture, stopping.")
-#   exit(-1)
+frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
 process_this_frame = True
 green = 0
@@ -44,56 +30,46 @@ while True:
         print('empty frame')
         continue
 
-    # if TELLO:
-    #   frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-
     # Only process every other frame of video to save time
     if process_this_frame:
-      frame = np.fliplr(frame)
-      hsv = cv2.cvtColor(frame ,cv2.COLOR_BGR2HSV)
+        frame = np.fliplr(frame)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-      # green
-      lowerb = np.array([50,40,30])
-      upperb = np.array([80,255,255])
-      mask = cv2.inRange(hsv, lowerb, upperb)
+        # green bounding
+        color_bottom = np.array([50, 40, 30])
+        color_top = np.array([80, 255, 255])
+        mask = cv2.inRange(hsv, color_bottom, color_top)
 
-      mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3),np.uint8)) # remove noise
-      green = cv2.countNonZero(mask)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))  # remove noise
+        green = cv2.countNonZero(mask)
 
-      mask = cv2.bitwise_not(mask) # invert 
+        mask = cv2.bitwise_not(mask)  # invert
 
-      res = cv2.bitwise_and(frame,frame,mask=mask)
+        res = cv2.bitwise_and(frame, frame, mask=mask)
 
-      # see: https://stackoverflow.com/questions/44522012/rectangle-detection-tracking-using-opencv
-      contours = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2]
-      bboxes = []
-      dst = frame.copy()
-      # print(contours)
-      areasum = 0
-      for cnt in contours:
-          bbox = cv2.boundingRect(cnt)
-          x,y,w,h = bbox
-          if w<30 or h < 30 or w*h < 2000 or w > 500:
-              continue
-          area = w * h
-          areasum += area
+        # see: https://stackoverflow.com/questions/44522012/rectangle-detection-tracking-using-opencv
+        contours = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2]
 
-          cv2.rectangle(dst, (x,y), (x+w,y+h), (255,0,0), 1, 16)
+        dst = frame.copy()
+        for cnt in contours:
+            bbox = cv2.boundingRect(cnt)
+            x, y, w, h = bbox
+            # big enough and not too big
+            if w < 30 or h < 30 or w * h < 2000 or w > 500:
+                continue
 
-      # print(areasum / (fw * fh))
+            cv2.rectangle(dst, (x, y), (x + w, y + h), (255, 0, 0), 1, 16)
 
-      # Display the resulting image
-      cv2.imshow('mask', mask)  
-      cv2.imshow('dst', dst)  
+        cv2.imshow('mask', mask)
+        cv2.imshow('dst', dst)
 
     process_this_frame = not process_this_frame
 
     # Stop if the ratio of green exceeds the threshold
-    ratio = green / (fw * fh)
-    print(ratio)
+    ratio = green / (frame_width * frame_height)
     if ratio > stop_thres:
-      print("Exceeded")
-      d.land()
+        print(f'Exceeded. (ratio: {ratio})')
+        d.land()
 
     # Hit 'q' on the keyboard to quit!
     if cv2.waitKey(1) & 0xFF == ord('q'):
