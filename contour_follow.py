@@ -5,47 +5,27 @@ import numpy as np
 import time
 import util
 
-# TELLO = False
-TELLO = True
+d = tello.Tello()
+d.takeoff()
 
-if TELLO:
-    d = tello.Tello()
-    d.takeoff()
-
-    # Do NOT use streamon() because it automatically takes control of the video stream (look at the source code)
-    d.send_command('streamon')  
-    time.sleep(2)
+# Do NOT use streamon() because it automatically takes control of the video stream (look at the source code)
+d.send_command('streamon')  
+time.sleep(2)
 
 stop_thres = 0.30
-
-# easyTelloを改造しない場合
-# cap = None
-# if TELLO:
-#     cap = cv2.VideoCapture('udp://0.0.0.0:11111')
-#     # cap.set(cv2.CAP_PROP_FPS, 10)
-# else:
-#     cap = cv2.VideoCapture(0)
-
-# fw = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-# fh = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-# if not cap.isOpened():
-#   print("Failed to open VideoCapture, stopping.")
-#   exit(-1)
 
 cv2.namedWindow("square")
 
 green = 0
 
 while True:
-    # ret, frame = cap.read()
     frame = d.frame
 
-    # PCスペックが低い場合に画像を縮小処理する
-    # if TELLO:
-    #   frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
     if frame is None:
         continue
+
+    # PCスペックが低い場合に画像を縮小処理する
+    # frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
     fw = d.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     fh = d.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -95,39 +75,38 @@ while True:
     ratio = green / (fw * fh)
     print(ratio)
 
-    if TELLO:
-        if ratio > stop_thres:
-            print("Exceeded")
-            d.flip("b")
-            d.stop()
+    if ratio > stop_thres:
+        print("Exceeded")
+        d.flip("b")
+        d.stop()
 
-        # ターゲット中心がカメラ中心より右にあったら
-        forward = True
-        if cx - fw / 2 > 50:
-            forward = False
-            print("Going Right...")
-            d.right(30)
-            time.sleep(2)
-        elif cx - fw / 2 < -50:
-            forward = False
-            print("Going Left...")
-            d.left(30)
-            time.sleep(2)
+    # ターゲット中心がカメラ中心より右にあったら
+    forward = True
+    if cx - fw / 2 > 50:
+        forward = False
+        print("Going Right...")
+        d.right(30)
+        time.sleep(2)
+    elif cx - fw / 2 < -50:
+        forward = False
+        print("Going Left...")
+        d.left(30)
+        time.sleep(2)
 
-        if cy - fh / 2 > 50:
-            forward = False
-            print("Going Down...")
-            d.down(30)
-            time.sleep(2)
-        elif cy - fh / 2 < -50:
-            forward = False
-            print("Going Up...")
-            d.up(30)
-            time.sleep(2)
+    if cy - fh / 2 > 50:
+        forward = False
+        print("Going Down...")
+        d.down(30)
+        time.sleep(2)
+    elif cy - fh / 2 < -50:
+        forward = False
+        print("Going Up...")
+        d.up(30)
+        time.sleep(2)
 
-        if forward:
-            print("Going forward...")
-            d.forward(50)
+    if forward:
+        print("Going forward...")
+        d.forward(50)
 
     # Qキーで着陸
     key = cv2.waitKey(0) & 0xFF
