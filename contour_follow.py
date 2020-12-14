@@ -11,20 +11,14 @@ TELLO = True
 if TELLO:
     d = tello.Tello()
     d.takeoff()
-    print(d.send_command("battery?"))
-    # time.sleep(2)
-
-    # d.up(200)
-    # time.sleep(2)
 
     # Do NOT use streamon() because it automatically takes control of the video stream (look at the source code)
-    d.streamon()
-    # d.send_command('streamon')  
+    d.send_command('streamon')  
     time.sleep(2)
-    # d.land()
 
 stop_thres = 0.30
 
+# easyTelloを改造しない場合
 # cap = None
 # if TELLO:
 #     cap = cv2.VideoCapture('udp://0.0.0.0:11111')
@@ -41,17 +35,13 @@ stop_thres = 0.30
 
 cv2.namedWindow("square")
 
-
-process_this_frame = True
 green = 0
-# operating = False
 
 while True:
-    # Grab a single frame of video
     # ret, frame = cap.read()
     frame = d.frame
 
-
+    # PCスペックが低い場合に画像を縮小処理する
     # if TELLO:
     #   frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
     if frame is None:
@@ -60,19 +50,16 @@ while True:
     fw = d.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     fh = d.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
-    # Only process every other frame of video to save time
-    # frame = np.fliplr(frame)
     hsv = cv2.cvtColor(frame ,cv2.COLOR_BGR2HSV)
 
-    # green
+    # 緑色の領域を抽出
     lowerb = np.array([40,30,90])
     upperb = np.array([90,255,255])
     mask = cv2.inRange(hsv, lowerb, upperb)
 
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3),np.uint8)) # remove noise
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3),np.uint8)) # ノイズ除去
     green = cv2.countNonZero(mask)
-
-    mask = cv2.bitwise_not(mask) # invert
+    mask = cv2.bitwise_not(mask) # 反転
 
     res = cv2.bitwise_and(frame,frame,mask=mask)
 
@@ -80,7 +67,6 @@ while True:
     contours = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2]
     bboxes = []
     dst = frame.copy()
-    # dst = mask.copy()
     bboxmax = None
     areamax = 0
     for cnt in contours:
@@ -115,7 +101,6 @@ while True:
             d.flip("b")
             d.stop()
 
-        # d.curve(0, 0, 0, )
         # ターゲット中心がカメラ中心より右にあったら
         forward = True
         if cx - fw / 2 > 50:
@@ -144,22 +129,22 @@ while True:
             print("Going forward...")
             d.forward(50)
 
-    # r = cv2.addWeighted(dst, 0.5, mask, 0.5, 0.0, None, None) 
-    # cv2.imshow('res',r)
-    # cv2.imshow('dst', dst)
-
-    # land on Q key
+    # Qキーで着陸
     key = cv2.waitKey(0) & 0xFF
     if key == ord('q'):
         d.land()
         break
 
+    # 入力画像の表示
+    # r = cv2.addWeighted(dst, 0.5, mask, 0.5, 0.0, None, None) 
+    # cv2.imshow('res',r)
+    # cv2.imshow('dst', dst)
     if key == ord('r'):
         cv2.imshow('dst', frame)
         break
 
     util.key_to_move(d, key)
 
-# Release handle to the webcam
+# リソースの解放
 d.cap.release()
 cv2.destroyAllWindows()
