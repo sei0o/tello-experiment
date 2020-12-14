@@ -44,9 +44,10 @@ while True:
     contours = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2]
 
     dst = frame.copy()
-
+    
     max_bounding_box = 0
     max_area = 0
+    
     for cnt in contours:
         bbox = cv2.boundingRect(cnt)
         x, y, w, h = bbox
@@ -68,6 +69,7 @@ while True:
     x, y, w, h = max_bounding_box
     cx = int(x + w / 2)
     cy = int(y + h / 2)
+    
     cv2.circle(dst, (cx, cy), 10, (0, 0, 255), 3)
 
     ratio = green / (frame_width * frame_height)
@@ -117,6 +119,10 @@ while True:
         break
 
     # show frame for debugging
+    # r = cv2.addWeighted(dst, 0.5, mask, 0.5, 0.0, None, None) 
+    # cv2.imshow('res',r)
+    # cv2.imshow('dst', dst)
+    
     if key == ord('r'):
         cv2.imshow('dst', frame)
         break
