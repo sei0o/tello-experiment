@@ -106,8 +106,6 @@ while True:
     cy = int(y + h / 2)
     cv2.circle(dst, (cx,cy), 10, (0,0,255), 3)
 
-    print(bboxmax)
-
     ratio = green / (fw * fh)
     print(ratio)
 

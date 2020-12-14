@@ -3,6 +3,7 @@ import face_recognition
 import cv2
 import numpy as np
 import time
+import util
 
 TELLO = True
 
@@ -96,8 +97,11 @@ while True:
       d.land()
 
     # Hit 'q' on the keyboard to quit!
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(1)
+    if key & 0xFF == ord('q'):
         break
+
+    util.key_to_move(d, key)
 
 # Release handle to the webcam
 cap.release()

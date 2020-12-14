@@ -22,6 +22,12 @@ def key_to_move(d, key):
   if key == ord('d'):
     d.right(STEP)
 
+  if key == ord('y'):
+    d.up(STEP)
+
+  if key == ord('h'):
+    d.down(STEP)
+
   if key == ord('e'):
     d.ccw(45)
 

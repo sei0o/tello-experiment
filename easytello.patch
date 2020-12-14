@@ -1,0 +1,69 @@
+--- /home/sei0o/.local/lib/python3.8/site-packages/easytello/tello.py	2020-12-14 13:03:53.800003290 +0900
++++ easytello_modified.py	2020-12-14 13:03:36.346669554 +0900
+@@ -9,6 +9,8 @@
+         # Opening local UDP port on 8889 for Tello communication
+         self.local_ip = ''
+         self.local_port = 8889
++        self.frame = None
++        self.cap = None
+         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+         self.socket.bind((self.local_ip, self.local_port))
+         
+@@ -42,15 +44,15 @@
+             
+         # Checking whether the command has timed out or not (based on value in 'MAX_TIME_OUT')
+         start = time.time()
+-        while not self.log[-1].got_response():  # Runs while no repsonse has been received in log
+-            now = time.time()
+-            difference = now - start
+-            if difference > self.MAX_TIME_OUT:
+-                print('Connection timed out!')
+-                break
++        # while not self.log[-1].got_response():  # Runs while no repsonse has been received in log
++        #     now = time.time()
++        #     difference = now - start
++        #     if difference > self.MAX_TIME_OUT:
++        #         print('Connection timed out!')
++        #         break
+         # Prints out Tello response (if 'debug' is True)
+-        if self.debug is True and query is False:
+-            print('Response: {}'.format(self.log[-1].get_response()))
++        # if self.debug is True and query is False:
++        #     print('Response: {}'.format(self.log[-1].get_response()))
+ 
+     def _receive_thread(self):
+         while True:
+@@ -63,18 +65,25 @@
+ 
+     def _video_thread(self):
+         # Creating stream capture object
+-        cap = cv2.VideoCapture('udp://'+self.tello_ip+':11111')
++        self.cap = cv2.VideoCapture('udp://'+self.tello_ip+':11111')
++
+         # Runs while 'stream_state' is True
+         while self.stream_state:
+-            ret, frame = cap.read()
+-            cv2.imshow('DJI Tello', frame)
++            ret, frame = self.cap.read()
++
++            if not ret:
++                print('empty frame')
++                continue
++            
++            self.frame = frame
++            # cv2.imshow('DJI Tello', frame)
+ 
+             # Video Stream is closed if escape key is pressed
+-            k = cv2.waitKey(1) & 0xFF
+-            if k == 27:
+-                break
+-        cap.release()
+-        cv2.destroyAllWindows()
++            # k = cv2.waitKey(1) & 0xFF
++            # if k == 27:
++            #     break
++        # cap.release()
++        # cv2.destroyAllWindows()
+     
+     def wait(self, delay: float):
+         # Displaying wait message (if 'debug' is True)
