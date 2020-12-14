@@ -5,7 +5,7 @@ import numpy as np
 import time
 import util
 
-TELLO = True
+TELLO = True # 実機であればTrue, PCによるデバッグ時にはFalseに設定
 
 if TELLO:
     d = tello.Tello()
