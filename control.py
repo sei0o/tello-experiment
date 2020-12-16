@@ -1,11 +1,7 @@
-# CLI-based controllers for Tello
-
 import cv2
 import easytello
 
 from joystick import Controller
-
-STEP = 50
 
 tello = easytello.tello.Tello()
 
